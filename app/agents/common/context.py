@@ -8,12 +8,12 @@ FilePath: context
 
 import os
 import uuid
-from dataclasses import MISSING, dataclass, field, fields
+# from dataclasses import MISSING, dataclass, field, fields
 from pathlib import Path
 from typing import Annotated, get_args, get_origin
 
 import yaml
-
+from pydantic import BaseModel, Field
 
 from app.core.logger import logger_manager
 
@@ -22,8 +22,7 @@ logger = logger_manager.get_logger(__name__)
 SAVE_DIR = "./saves"
 
 
-@dataclass(kw_only=True)
-class BaseContext:
+class BaseContext(BaseModel):
     """
     定义一个基础 Context 供 各类 graph 继承
 
@@ -39,13 +38,19 @@ class BaseContext:
             if hasattr(self, key):
                 setattr(self, key, value)
 
-    thread_id: str = field(
+    thread_id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
-        metadata={
-            "name": "线程ID",
-            "configurable": False,
-            "description": "用来唯一标识一个对话线程",
-        },
+        description="用来唯一标识一个对话线程",
+        frozen=True,
+        json_schema_extra={
+
+        }
+        # default_factory=lambda: str(uuid.uuid4()),
+        # metadata={
+        #     "name": "线程ID",
+        #     "configurable": False,
+        #     "description": "用来唯一标识一个对话线程",
+        # },
     )
 
     user_id: str = field(

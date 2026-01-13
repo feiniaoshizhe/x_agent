@@ -5,8 +5,11 @@ Date: 2026/1/13 17:10
 Description:
 FilePath: graph
 """
-
+from deepagents.middleware.filesystem import FilesystemMiddleware
+from deepagents.middleware.patch_tool_calls import PatchToolCallsMiddleware
+from deepagents.middleware.subagents import SubAgentMiddleware
 from langchain.agents import create_agent
+from langchain.agents.middleware import ModelRequest, SummarizationMiddleware, TodoListMiddleware, dynamic_prompt
 
 from app.agents.common.base import BaseAgent
 
@@ -30,7 +33,8 @@ class DeepAgent(BaseAgent):
         self.graph = None
         self.checkpointer = None
 
-    async def get_tools(self):
+    @staticmethod
+    async def get_tools():
         """返回 Deep Agent 的专用工具"""
         tools = []
         # tavily_search = get_tavily_search()
