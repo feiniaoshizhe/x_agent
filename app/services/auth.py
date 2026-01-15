@@ -15,7 +15,7 @@ class AuthService:
     
     @staticmethod
     def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-        """Createaccesstoken
+        """Create access token
         
         Args:
             data: Data to encode
@@ -29,7 +29,7 @@ class AuthService:
     
     @staticmethod
     def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-        """Createrefreshtoken
+        """Create refresh token
         
         Args:
             data: Data to encode

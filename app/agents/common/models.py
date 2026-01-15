@@ -14,6 +14,7 @@ from pydantic import SecretStr
 
 from app.core.logger import logger_manager
 from app.utils import get_docker_safe_url
+from app.core.config import settings
 
 logger = logger_manager.get_logger(__name__)
 

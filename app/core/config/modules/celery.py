@@ -1,5 +1,3 @@
-"""Celery configuration module"""
-
 from app.core.config.base import EnvBaseSettings
 from pydantic import Field
 

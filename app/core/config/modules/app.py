@@ -1,5 +1,3 @@
-"""applicationconfigurationmodule"""
-
 from pydantic import Field
 from app.core.config.base import EnvBaseSettings
 

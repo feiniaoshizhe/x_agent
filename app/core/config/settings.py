@@ -7,6 +7,7 @@ from app.core.config.modules.email import EmailSettings
 from app.core.config.modules.cors import CORSSettings
 from app.core.config.modules.redis import RedisSettings
 from app.core.config.modules.celery import CelerySettings
+from app.core.config.agents.tavily import TavilySettings
 
 class Settings:
     """Global configuration class
@@ -38,6 +39,10 @@ class Settings:
     @cached_property
     def celery(self) -> CelerySettings:
         return CelerySettings()
+
+    @cached_property
+    def tavily(self) -> TavilySettings:
+        return TavilySettings()
 
 
 # Create a global settings instance

@@ -1,0 +1,37 @@
+"""
+Author: xuyoushun
+Email: xuyoushun@bestpay.com.cn
+Date: 2026/1/15 18:03
+Description:
+FilePath: graph
+"""
+
+from langchain.agents import create_agent
+
+from app.agents.common import BaseAgent, load_chat_model
+from app.agents.common.tools import get_tools_from_context
+
+
+class MiniAgent(BaseAgent):
+    name = "智能体 Demo"
+    description = "一个基于内置工具的智能体示例"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    async def get_graph(self, **kwargs):
+        if self.graph:
+            return self.graph
+
+        context = self.context_schema.from_file(module_name=self.module_name)
+
+        # 创建 MiniAgent
+        graph = create_agent(
+            model=load_chat_model(context.model),
+            system_prompt=context.system_prompt,
+            tools=await get_tools_from_context(context),
+            checkpointer=await self._get_checkpointer(),
+        )
+
+        self.graph = graph
+        return graph

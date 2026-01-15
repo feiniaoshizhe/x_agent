@@ -8,9 +8,8 @@ FilePath: context
 
 import os
 import uuid
-# from dataclasses import MISSING, dataclass, field, fields
 from pathlib import Path
-from typing import Annotated, get_args, get_origin
+from typing import Annotated, get_args, get_origin, List, Any, Dict
 
 import yaml
 from pydantic import BaseModel, Field
@@ -20,6 +19,16 @@ from app.core.logger import logger_manager
 logger = logger_manager.get_logger(__name__)
 
 SAVE_DIR = "./saves"
+
+class ConfigurableItem(BaseModel):
+    """表示一个可配置项的模型"""
+    type: str
+    name: str
+    options: List[Any] = []
+    default: Any = None
+    description: str = ""
+    template_metadata: Dict[str, Any] = Field(default_factory=dict)
+
 
 
 class BaseContext(BaseModel):
@@ -43,37 +52,25 @@ class BaseContext(BaseModel):
         description="用来唯一标识一个对话线程",
         frozen=True,
         json_schema_extra={
-
+            "name": "线程ID"
         }
-        # default_factory=lambda: str(uuid.uuid4()),
-        # metadata={
-        #     "name": "线程ID",
-        #     "configurable": False,
-        #     "description": "用来唯一标识一个对话线程",
-        # },
     )
 
-    user_id: str = field(
+    user_id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
-        metadata={
-            "name": "用户ID",
-            "configurable": False,
-            "description": "用来唯一标识一个用户",
-        },
+        description="用来唯一标识一个用户",
+        frozen=True,
     )
 
-    system_prompt: str = field(
+    system_prompt: str = Field(
         default="You are a helpful assistant.",
-        metadata={"name": "系统提示词", "description": "用来描述智能体的角色和行为"},
+        description="用来描述智能体的角色和行为",
+        # metadata={"name": "系统提示词", "description": "用来描述智能体的角色和行为"},
     )
 
-    model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
+    model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = Field(
         default="",
-        metadata={
-            "name": "智能体模型",
-            "options": [],
-            "description": "智能体的驱动模型，建议选择 Agent 能力较强的模型，不建议使用小参数模型。",
-        },
+        description="智能体的驱动模型，建议选择 Agent 能力较强的模型，不建议使用小参数模型。",
     )
 
     @classmethod
@@ -121,39 +118,52 @@ class BaseContext(BaseModel):
             return False
 
     @classmethod
-    def get_configurable_items(cls):
+    def get_configurable_items(cls) -> Dict[str, ConfigurableItem]:
         """实现一个可配置的参数列表，在 UI 上配置时使用"""
         configurable_items = {}
-        for f in fields(cls):
-            if f.init and not f.metadata.get("hide", False):
-                if f.metadata.get("configurable", True):
-                    # 处理类型信息
-                    field_type = f.type
-                    type_name = cls._get_type_name(field_type)
 
-                    # 提取 Annotated 的元数据
-                    template_metadata = cls._extract_template_metadata(field_type)
+        # 获取模型字段信息
+        model_fields = cls.model_fields
 
-                    options = f.metadata.get("options", [])
-                    if callable(options):
-                        options = options()
+        for field_name, field_info in model_fields.items():
+            # 检查是否为可配置字段
+            field_json_schema_extra = getattr(field_info, 'json_schema_extra', {}) or {}
 
-                    configurable_items[f.name] = {
-                        "type": type_name,
-                        "name": f.metadata.get("name", f.name),
-                        "options": options,
-                        "default": (
-                            f.default
-                            if f.default is not MISSING
-                            else (
-                                f.default_factory()
-                                if f.default_factory is not MISSING
-                                else None
-                            )
-                        ),
-                        "description": f.metadata.get("description", ""),
-                        "template_metadata": template_metadata,  # Annotated 的额外元数据
-                    }
+            # 如果标记为隐藏，则跳过
+            if field_json_schema_extra.get("hide", False):
+                continue
+
+            # 如果标记为不可配置，则跳过
+            if not field_json_schema_extra.get("configurable", True):
+                continue
+
+            # 获取字段类型名称
+            type_name = cls._get_type_name(field_info.annotation)
+
+            # 提取 Annotated 的元数据
+            template_metadata = cls._extract_template_metadata(field_info.annotation)
+
+            # 获取选项
+            options = field_json_schema_extra.get("options", [])
+            if callable(options):
+                options = options()
+
+            # 获取默认值
+            default_value = field_info.default
+            if default_value is ...:  # 如果是 Required 类型
+                default_value = None
+            elif callable(getattr(field_info, 'default_factory', None)):
+                if field_info.default_factory is not None:
+                    default_value = field_info.default_factory()
+
+            configurable_items[field_name] = ConfigurableItem(
+                type=type_name,
+                name=field_json_schema_extra.get("name", field_name),
+                options=options,
+                default=default_value,
+                description=field_json_schema_extra.get("description", ""),
+                template_metadata=template_metadata
+            )
 
         return configurable_items
 

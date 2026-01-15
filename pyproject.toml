@@ -10,7 +10,6 @@ dependencies = [
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "loguru>=0.7.0",
-    "sqlmodel>=0.0.14",
     "greenlet>=3.0.0",
     "pymysql>=1.1.0",
     "aiomysql>=0.2.0",
@@ -32,6 +31,9 @@ dependencies = [
     "langchain-openai>=1.1.7",
     "deepagents>=0.3.5",
     "tavily-python>=0.7.17",
+    "langchain-mcp-adapters>=0.2.1",
+    "sqlalchemy>=2.0.45",
+    "langchain-tavily>=0.2.16",
 ]
 
 [project.optional-dependencies]
