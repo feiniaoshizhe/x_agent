@@ -7,4 +7,5 @@ FilePath: __init__.py
 """
 
 from .tavily import TavilySettings
-__all__ = ["TavilySettings"]
+from .llm import LlmSettings
+__all__ = ["TavilySettings", "LlmSettings"]

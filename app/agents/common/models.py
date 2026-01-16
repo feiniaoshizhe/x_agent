@@ -6,41 +6,30 @@ Description:
 FilePath: model
 """
 
-import os
 import traceback
+from typing import Literal,TypeAlias
 
-from langchain.chat_models import BaseChatModel, init_chat_model
+from langchain.chat_models import BaseChatModel
 from pydantic import SecretStr
 
 from app.core.logger import logger_manager
-from app.utils import get_docker_safe_url
-from app.core.config import settings
 
 logger = logger_manager.get_logger(__name__)
 
 
-def load_chat_model(fully_specified_name: str, **kwargs) -> BaseChatModel:
+ProviderType: TypeAlias = Literal["openai", "genai", "dashscope", "deepseek", "zhipuai"]
+
+def load_chat_model(
+        provider: ProviderType,
+        model: str,
+        base_url: str,
+        api_key: str,
+        **kwargs,
+) -> BaseChatModel:
     """
-    Load a chat model from a fully specified name.
+
     """
-    provider, model = fully_specified_name.split("/", maxsplit=1)
-
-    model_info = config.model_names.get(provider)
-    if not model_info:
-        raise ValueError(f"Unknown model provider: {provider}")
-
-    env_var = model_info.env
-
-    api_key = os.getenv(env_var) or env_var
-
-    base_url = get_docker_safe_url(model_info.base_url)
-
-    if provider in ["openai", "deepseek"]:
-        model_spec = f"{provider}:{model}"
-        logger.debug(f"[offical] Loading model {model_spec} with kwargs {kwargs}")
-        return init_chat_model(model_spec, **kwargs)
-
-    elif provider in ["dashscope"]:
+    if provider in ["dashscope", "deepseek"]:
         from langchain_deepseek import ChatDeepSeek
 
         return ChatDeepSeek(
@@ -49,10 +38,32 @@ def load_chat_model(fully_specified_name: str, **kwargs) -> BaseChatModel:
             base_url=base_url,
             api_base=base_url,
             stream_usage=True,
+            **kwargs,
+        )
+    elif provider == "genai":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        return ChatGoogleGenerativeAI(
+            model=model,
+            api_key=SecretStr(api_key),
+            api_base=base_url,
+            streaming=True,
+            **kwargs,
         )
 
+
+    elif provider == "zhipuai":
+        from langchain_community.chat_models import ChatZhipuAI
+
+        return ChatZhipuAI(
+            model=model,
+            api_key=api_key,
+            api_base=base_url,
+            streaming=True,
+            **kwargs,
+        )
     else:
-        try:  # 其他模型，默认使用OpenAIBase, like openai, zhipuai
+        try:  # 其他模型，默认使用OpenAIBase,
             from langchain_openai import ChatOpenAI
 
             return ChatOpenAI(
@@ -60,6 +71,7 @@ def load_chat_model(fully_specified_name: str, **kwargs) -> BaseChatModel:
                 api_key=SecretStr(api_key),
                 base_url=base_url,
                 stream_usage=True,
+                **kwargs,
             )
         except Exception as e:
             raise ValueError(
